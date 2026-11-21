@@ -26,6 +26,7 @@ usage() {
     cat <<'USAGE'
 Использование:
   ./run.sh assemble  -i <программа.json> -o <программа.bin> [-t]
+  ./run.sh interpret -i <программа.bin> -o <дамп.json> [-r START:END]
   ./run.sh test
   ./run.sh demo
 USAGE
@@ -38,6 +39,14 @@ run_demo() {
     "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" \
         -i "$DATA_DIR/spec_tests.json" \
         -o "$output_dir/spec_tests.bin" -t
+    echo
+    echo "== Копирование массива (Этап 3) =="
+    "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" \
+        -i "$DATA_DIR/copy_array.json" \
+        -o "$output_dir/copy_array.bin"
+    "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" \
+        -i "$output_dir/copy_array.bin" \
+        -o "$output_dir/copy_array.dump.json" -r 0:19
 }
 
 command="${1:-}"
@@ -45,6 +54,10 @@ case "$command" in
     assemble)
         shift
         exec "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" "$@"
+        ;;
+    interpret)
+        shift
+        exec "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" "$@"
         ;;
     test)
         shift

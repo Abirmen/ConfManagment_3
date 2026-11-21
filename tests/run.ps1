@@ -4,6 +4,7 @@
 .DESCRIPTION
     Команды:
       assemble  <программа.json> <программа.bin>  [-Test]
+      interpret <программа.bin> <дамп.json>  [-Range START:END]
       test
       demo
 .EXAMPLE
@@ -14,12 +15,13 @@
 
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('assemble', 'test', 'demo')]
+    [ValidateSet('assemble', 'interpret', 'test', 'demo')]
     [string]$Command = 'demo',
     [Parameter(Position = 1)]
     [string]$Source,
     [Parameter(Position = 2)]
     [string]$Target,
+    [string]$Range = '0:31',
     [switch]$Test
 )
 
@@ -49,6 +51,15 @@ function Invoke-Assemble {
     Invoke-Python $StepArgs
 }
 
+function Invoke-Interpret {
+    if (-not $Source -or -not $Target) {
+        Write-Host 'Укажите входной и выходной файлы.'
+        exit 2
+    }
+    Invoke-Python @('src/interpreter.py', '-i', $Source,
+        '-o', $Target, '-r', $Range)
+}
+
 function Invoke-Tests {
     Invoke-Python @('-m', 'unittest', 'discover', '-s', 'tests', '-v')
 }
@@ -58,12 +69,19 @@ function Invoke-Demo {
     Write-Host '== Тест спецификации (Этап 2) =='
     Invoke-Python @('src/assembler.py', '-i', 'tests/spec_tests.json',
         '-o', 'output/spec_tests.bin', '-t')
+    Write-Host ''
+    Write-Host '== Копирование массива (Этап 3) =='
+    Invoke-Python @('src/assembler.py', '-i', 'tests/copy_array.json',
+        '-o', 'output/copy_array.bin')
+    Invoke-Python @('src/interpreter.py', '-i', 'output/copy_array.bin',
+        '-o', 'output/copy_array.dump.json', '-r', '0:19')
 }
 
 Push-Location (Split-Path -Parent $PSScriptRoot)
 try {
     switch ($Command) {
         'assemble' { Invoke-Assemble }
+        'interpret' { Invoke-Interpret }
         'test' { Invoke-Tests }
         'demo' { Invoke-Demo }
     }

@@ -102,6 +102,14 @@
 | `-o`, `--output` | да | путь к двоичному файлу с машинным кодом |
 | `-t`, `--test` | нет | вывести машинный код на экран в байтовом виде |
 
+### Интерпретатор (`src/interpreter.py`)
+
+| Флаг | Обязательный | Назначение |
+| --- | --- | --- |
+| `-i`, `--input` | да | путь к двоичному файлу с машинным кодом |
+| `-o`, `--output` | да | путь к JSON-файлу для дампа памяти данных |
+| `-r`, `--range` | нет (по умолчанию `0:31`) | диапазон дампа в формате `START:END` |
+
 ## Архитектура и реализованные этапы
 
 ### Этап 1. Промежуточное представление (ассемблер, часть 1)
@@ -133,6 +141,36 @@
 Контрольный прогон: 4 команды × 5 байт = 20 байт, побайтовое совпадение
 со всеми четырьмя тестами методички.
 
+### Этап 3. Интерпретатор и операции с памятью
+
+* `src/memory.py` — классы `DataMemory` (65536 ячеек по 32 бита с маской
+  `0xFFFFFFFF`) и `RegisterFile` (64 регистра); оба класса проверяют
+  границы и сообщают об ошибке `E11`.
+* `src/decoder.py` — разбор байтового потока на 5-байтовые слова
+  little-endian, декодирование в `Instruction`, проверка кратности длины
+  файла 5 байтам (`E09`), известности кода операции (`E10`) и нулевого
+  значения неиспользуемых битов (`E14`).
+* `src/uvm.py` — `ProgramMemory` (память команд) и `VirtualMachine`:
+  цикл интерпретации со счётчиком команд, диспетчеризация обработчиков
+  через словарь, операции `load_const`, `read_mem`, `write_mem`.
+* `src/interpreter.py` — CLI: загрузка бинарного файла, выполнение,
+  разбор диапазона `START:END` с проверкой границ и запись JSON-дампа.
+
+Структура JSON-дампа памяти:
+
+```json
+{
+  "range": {"start": 0, "end": 19},
+  "memory_size": 65536,
+  "program_size": 30,
+  "executed_instructions": 30,
+  "cells": {"0": 11, "1": 22, "...": "..."}
+}
+```
+
+Пример `tests/copy_array.json` записывает массив `[11, 22, 33, 44, 55]`
+в адреса `0..4`, затем читает его и копирует в адреса `10..14`.
+
 ## Коды ошибок приложения
 
 | Код | Причина |
@@ -161,19 +199,28 @@ ConfManagment_3/
 ├── run.sh
 ├── src/
 │   ├── assembler.py
+│   ├── decoder.py
 │   ├── encoder.py
 │   ├── errors.py
 │   ├── instruction.py
+│   ├── interpreter.py
 │   ├── json_loader.py
-│   └── spec.py
+│   ├── memory.py
+│   ├── spec.py
+│   └── uvm.py
 └── tests/
+    ├── copy_array.json
     ├── run.ps1
     ├── spec_tests.json
     ├── test_assembler.py
+    ├── test_decoder.py
     ├── test_encoder.py
+    ├── test_interpreter.py
     ├── test_json_loader.py
+    ├── test_memory.py
     ├── test_stage1.ps1
-    └── test_stage2.ps1
+    ├── test_stage2.ps1
+    └── test_stage3.ps1
 ```
 
 ## Запуск через PowerShell
@@ -184,13 +231,16 @@ ConfManagment_3/
 
 ```powershell
 .\tests\run.ps1 assemble  tests\spec_tests.json output\spec_tests.bin -Test
+.\tests\run.ps1 interpret output\copy_array.bin output\copy_array.dump.json -Range 0:19
 .\tests\run.ps1 test
 .\tests\run.ps1 demo
 ```
 
-Демонстрационные сценарии этапов: `tests/test_stage1.ps1` … `tests/test_stage2.ps1`.
+Демонстрационные сценарии этапов: `tests/test_stage1.ps1` … `tests/test_stage3.ps1`.
 
-## Пример запуска и результат
+## Примеры запуска и результаты выполнения
+
+### Тест спецификации (этап 2)
 
 ```bash
 python src/assembler.py \
@@ -213,6 +263,44 @@ python src/assembler.py \
 ```text
 A3 16 01 D0 02 83 37 11 01 00 FA AB 03 00 00 EE FA 4F 12 07
 ```
+
+### Копирование массива (этап 3)
+
+```bash
+python src/assembler.py \
+    -i tests/copy_array.json \
+    -o output/copy_array.bin
+python src/interpreter.py \
+    -i output/copy_array.bin \
+    -o output/copy_array.dump.json -r 0:19
+```
+
+Реальный вывод:
+
+```text
+Размер двоичного файла: 150 байт
+Выполнено команд: 30
+Дамп памяти сохранён: output/copy_array.dump.json (0:19)
+```
+
+Фрагмент реального дампа `output/copy_array.dump.json`:
+
+```json
+{
+  "range": {"start": 0, "end": 19},
+  "memory_size": 65536,
+  "program_size": 30,
+  "executed_instructions": 30,
+  "cells": {
+    "0": 11, "1": 22, "2": 33, "3": 44, "4": 55,
+    "5": 0, "6": 0, "7": 0, "8": 0, "9": 0,
+    "10": 11, "11": 22, "12": 33, "13": 44, "14": 55,
+    "15": 0, "16": 0, "17": 0, "18": 0, "19": 0
+  }
+}
+```
+
+Исходный массив `0..4` и скопированный массив `10..14` совпадают.
 
 ## Тестирование
 
