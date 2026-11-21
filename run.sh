@@ -55,6 +55,19 @@ run_demo() {
     "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" \
         -i "$output_dir/test_bitreverse.bin" \
         -o "$output_dir/test_bitreverse.dump.json" -r 200:205
+    echo
+    echo "== Тестовая задача: вектор длины 8 (Этап 5) =="
+    for case in 1 2 3; do
+        local program="task_vector8_case$case"
+        echo "-- $program --"
+        "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" \
+            -i "$DATA_DIR/$program.json" \
+            -o "$output_dir/$program.bin"
+        "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" \
+            -i "$output_dir/$program.bin" \
+            -o "$output_dir/$program.dump.json" -r 0:4095
+        echo
+    done
 }
 
 command="${1:-}"

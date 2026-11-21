@@ -81,6 +81,16 @@ function Invoke-Demo {
         '-o', 'output/test_bitreverse.bin')
     Invoke-Python @('src/interpreter.py', '-i', 'output/test_bitreverse.bin',
         '-o', 'output/test_bitreverse.dump.json', '-r', '200:205')
+    Write-Host ''
+    Write-Host '== Тестовая задача: вектор длины 8 (Этап 5) =='
+    foreach ($Case in 1, 2, 3) {
+        $Program = "task_vector8_case$Case"
+        Write-Host "-- $Program --"
+        Invoke-Python @('src/assembler.py', '-i', "tests/$Program.json",
+            '-o', "output/$Program.bin")
+        Invoke-Python @('src/interpreter.py', '-i', "output/$Program.bin",
+            '-o', "output/$Program.dump.json", '-r', '0:4095')
+    }
 }
 
 Push-Location (Split-Path -Parent $PSScriptRoot)
