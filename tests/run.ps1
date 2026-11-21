@@ -3,11 +3,11 @@
     Запуск ассемблера, интерпретатора и тестов УВМ (вариант №2).
 .DESCRIPTION
     Команды:
-      assemble  <программа.json> <листинг IR>  [-Test]
+      assemble  <программа.json> <программа.bin>  [-Test]
       test
       demo
 .EXAMPLE
-    .\run.ps1 assemble tests\spec_tests.json output\spec_tests.ir.txt -Test
+    .\run.ps1 assemble tests\spec_tests.json output\spec_tests.bin -Test
 .EXAMPLE
     .\run.ps1 demo
 #>
@@ -55,9 +55,9 @@ function Invoke-Tests {
 
 function Invoke-Demo {
     New-Item -ItemType Directory -Force -Path 'output' | Out-Null
-    Write-Host '== Тест спецификации (Этап 1) =='
+    Write-Host '== Тест спецификации (Этап 2) =='
     Invoke-Python @('src/assembler.py', '-i', 'tests/spec_tests.json',
-        '-o', 'output/spec_tests.ir.txt', '-t')
+        '-o', 'output/spec_tests.bin', '-t')
 }
 
 Push-Location (Split-Path -Parent $PSScriptRoot)

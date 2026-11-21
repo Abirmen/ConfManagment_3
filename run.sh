@@ -25,7 +25,7 @@ fi
 usage() {
     cat <<'USAGE'
 Использование:
-  ./run.sh assemble  -i <программа.json> -o <листинг IR> [-t]
+  ./run.sh assemble  -i <программа.json> -o <программа.bin> [-t]
   ./run.sh test
   ./run.sh demo
 USAGE
@@ -34,10 +34,10 @@ USAGE
 run_demo() {
     local output_dir="$ROOT_DIR/output"
     mkdir -p "$output_dir"
-    echo "== Тест спецификации (Этап 1) =="
+    echo "== Тест спецификации (Этап 2) =="
     "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" \
         -i "$DATA_DIR/spec_tests.json" \
-        -o "$output_dir/spec_tests.ir.txt" -t
+        -o "$output_dir/spec_tests.bin" -t
 }
 
 command="${1:-}"

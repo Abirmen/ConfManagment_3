@@ -9,10 +9,11 @@ if str(SOURCE_DIR) not in sys.path:
     sys.path.insert(0, str(SOURCE_DIR))
 
 import spec
+from encoder import encode_instruction, encode_program
 from errors import CODE_OUTPUT_FILE, UvmError
 from json_loader import load_program
 
-TEST_MODE_HELP = "вывести внутреннее представление программы"
+TEST_MODE_HELP = "вывести машинный код в байтовом виде"
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -27,7 +28,7 @@ def create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "-o", "--output", required=True,
-        help="файл с результатом трансляции",
+        help="двоичный файл с машинным кодом",
     )
     parser.add_argument(
         "-t", "--test", action="store_true", help=TEST_MODE_HELP,
@@ -35,11 +36,15 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def write_listing(instructions: list, path: str) -> None:
-    """Записывает промежуточное представление в текстовый файл."""
-    lines = [item.format_fields() for item in instructions]
+def format_bytes(chunk: bytes) -> str:
+    """Форматирует байты в виде «0xA3, 0x16, ...»."""
+    return ", ".join(f"0x{byte:02X}" for byte in chunk)
+
+
+def write_binary(path: str, data: bytes) -> None:
+    """Записывает машинный код в двоичный файл."""
     try:
-        Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        Path(path).write_bytes(data)
     except OSError as error:
         raise UvmError(
             CODE_OUTPUT_FILE, f"не удалось записать {path}: {error}"
@@ -51,14 +56,15 @@ def main(argv=None) -> int:
     args = create_parser().parse_args(argv)
     try:
         instructions = load_program(args.input)
-        write_listing(instructions, args.output)
+        binary = encode_program(instructions)
+        write_binary(args.output, binary)
     except UvmError as error:
         print(str(error), file=sys.stderr)
         return spec.EXIT_ERROR
-    print(f"Трансляция завершена: {len(instructions)} команд")
+    print(f"Размер двоичного файла: {len(binary)} байт")
     if args.test:
         for instruction in instructions:
-            print(instruction.format_fields())
+            print(format_bytes(encode_instruction(instruction)))
     return spec.EXIT_OK
 
 
