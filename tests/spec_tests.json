@@ -1,0 +1,8 @@
+{
+  "program": [
+    {"op": "load_const", "const": 557, "reg": 45},
+    {"op": "read_mem", "addr": 623, "reg": 34},
+    {"op": "write_mem", "src_reg": 23, "addr_reg": 29},
+    {"op": "bitreverse", "base_reg": 53, "dst_addr": 639, "offset": 905}
+  ]
+}
