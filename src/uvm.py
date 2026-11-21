@@ -1,6 +1,7 @@
 """Модель учебной виртуальной машины и цикл интерпретации."""
 
 import spec
+from alu import bitreverse_32
 from decoder import decode_program
 from errors import CODE_BINARY_LENGTH, CODE_UNKNOWN_OPCODE, UvmError
 from instruction import Instruction
@@ -42,6 +43,7 @@ class VirtualMachine:
             spec.OPCODE_LOAD_CONST: self._load_const,
             spec.OPCODE_READ_MEM: self._read_mem,
             spec.OPCODE_WRITE_MEM: self._write_mem,
+            spec.OPCODE_BITREVERSE: self._bitreverse,
         }
 
     @property
@@ -84,3 +86,11 @@ class VirtualMachine:
         address = self.registers.read(instruction.value("addr_reg"))
         value = self.registers.read(instruction.value("src_reg"))
         self.data.write(address, value)
+
+    def _bitreverse(self, instruction: Instruction) -> None:
+        """Выполняет bitreverse: dst = bitreverse(data[regs[B] + D])."""
+        address = self.registers.read(instruction.value("base_reg"))
+        address += instruction.value("offset")
+        value = self.data.read(address)
+        result = bitreverse_32(value)
+        self.data.write(instruction.value("dst_addr"), result)

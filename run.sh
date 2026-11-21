@@ -47,6 +47,14 @@ run_demo() {
     "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" \
         -i "$output_dir/copy_array.bin" \
         -o "$output_dir/copy_array.dump.json" -r 0:19
+    echo
+    echo "== Тест bitreverse (Этап 4) =="
+    "$PYTHON_BIN" "$ROOT_DIR/src/assembler.py" \
+        -i "$DATA_DIR/test_bitreverse.json" \
+        -o "$output_dir/test_bitreverse.bin"
+    "$PYTHON_BIN" "$ROOT_DIR/src/interpreter.py" \
+        -i "$output_dir/test_bitreverse.bin" \
+        -o "$output_dir/test_bitreverse.dump.json" -r 200:205
 }
 
 command="${1:-}"

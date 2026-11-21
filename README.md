@@ -171,6 +171,20 @@
 Пример `tests/copy_array.json` записывает массив `[11, 22, 33, 44, 55]`
 в адреса `0..4`, затем читает его и копирует в адреса `10..14`.
 
+### Этап 4. Арифметико-логическое устройство
+
+* `src/alu.py` — функция `bitreverse_32(value)`: побитовый разворот
+  32-битного беззнакового целого (маска `0xFFFFFFFF`), бит `i` переходит
+  в бит `31 - i`.
+* `src/uvm.py` — обработчик команды `bitreverse` (`A=110`): вычисляет
+  эффективный адрес `regs[B] + D`, читает ячейку, применяет
+  `bitreverse_32` и записывает результат по адресу `C`; обе операции
+  с памятью проверяют границы.
+* `tests/test_bitreverse.json` — записывает 6 значений в адреса
+  `110..115`, загружает базовый адрес `100` в регистр `5` и применяет
+  `bitreverse` со смещениями `D = 10..15`, сохраняя результаты
+  в адреса `200..205`.
+
 ## Коды ошибок приложения
 
 | Код | Причина |
@@ -198,6 +212,7 @@ ConfManagment_3/
 ├── .gitignore
 ├── run.sh
 ├── src/
+│   ├── alu.py
 │   ├── assembler.py
 │   ├── decoder.py
 │   ├── encoder.py
@@ -212,7 +227,10 @@ ConfManagment_3/
     ├── copy_array.json
     ├── run.ps1
     ├── spec_tests.json
+    ├── test_alu.py
     ├── test_assembler.py
+    ├── test_bitreverse.json
+    ├── test_bitreverse.py
     ├── test_decoder.py
     ├── test_encoder.py
     ├── test_interpreter.py
@@ -220,7 +238,8 @@ ConfManagment_3/
     ├── test_memory.py
     ├── test_stage1.ps1
     ├── test_stage2.ps1
-    └── test_stage3.ps1
+    ├── test_stage3.ps1
+    └── test_stage4.ps1
 ```
 
 ## Запуск через PowerShell
@@ -236,7 +255,7 @@ ConfManagment_3/
 .\tests\run.ps1 demo
 ```
 
-Демонстрационные сценарии этапов: `tests/test_stage1.ps1` … `tests/test_stage3.ps1`.
+Демонстрационные сценарии этапов: `tests/test_stage1.ps1` … `tests/test_stage4.ps1`.
 
 ## Примеры запуска и результаты выполнения
 
@@ -301,6 +320,55 @@ python src/interpreter.py \
 ```
 
 Исходный массив `0..4` и скопированный массив `10..14` совпадают.
+
+### Тест `bitreverse()` (этап 4)
+
+```bash
+python src/assembler.py \
+    -i tests/test_bitreverse.json \
+    -o output/test_bitreverse.bin
+python src/interpreter.py \
+    -i output/test_bitreverse.bin \
+    -o output/test_bitreverse.dump.json -r 200:205
+```
+
+Реальный вывод:
+
+```text
+Размер двоичного файла: 125 байт
+Выполнено команд: 25
+Дамп памяти сохранён: output/test_bitreverse.dump.json (200:205)
+```
+
+Фрагмент реального дампа:
+
+```json
+{
+  "range": {"start": 200, "end": 205},
+  "program_size": 25,
+  "executed_instructions": 25,
+  "cells": {
+    "200": 2147483648,
+    "201": 1073741824,
+    "202": 4026531840,
+    "203": 1781286912,
+    "204": 4042321920,
+    "205": 4294965248
+  }
+}
+```
+
+| Адрес источника | Исходное значение | Ожидаемый `bitreverse` | Фактический дамп |
+| --- | --- | --- | --- |
+| 110 | 1 | `0x80000000` | 2147483648 |
+| 111 | 2 | `0x40000000` | 1073741824 |
+| 112 | 15 | `0xF0000000` | 4026531840 |
+| 113 | 1193046 (`0x123456`) | `0x6A2C4800` | 1781286912 |
+| 114 | 986895 (`0x0F0F0F`) | `0xF0F0F000` | 4042321920 |
+| 115 | 2097151 (`0x1FFFFF`) | `0xFFFFF800` | 4294965248 |
+
+Исходные ячейки `110..115` после выполнения программы не изменились,
+что подтверждается отдельным прогоном с диапазоном `110:115`.
 
 ## Тестирование
 

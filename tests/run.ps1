@@ -75,6 +75,12 @@ function Invoke-Demo {
         '-o', 'output/copy_array.bin')
     Invoke-Python @('src/interpreter.py', '-i', 'output/copy_array.bin',
         '-o', 'output/copy_array.dump.json', '-r', '0:19')
+    Write-Host ''
+    Write-Host '== Тест bitreverse (Этап 4) =='
+    Invoke-Python @('src/assembler.py', '-i', 'tests/test_bitreverse.json',
+        '-o', 'output/test_bitreverse.bin')
+    Invoke-Python @('src/interpreter.py', '-i', 'output/test_bitreverse.bin',
+        '-o', 'output/test_bitreverse.dump.json', '-r', '200:205')
 }
 
 Push-Location (Split-Path -Parent $PSScriptRoot)
